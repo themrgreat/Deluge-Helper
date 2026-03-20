@@ -268,3 +268,72 @@ html snippet ( redirect ) -
 
 }%>
 ```
+---
+
+# Send Mail using Zoho Creator Form with Zoho Sign Template :
+
+```javascript
+
+// Form input values
+recipientName = input.Name;
+recipientEmail = input.Email;
+
+// API URL (your template)
+url = "https://sign.zoho.com/api/v1/templates/30588000010568069/createdocument";
+
+// Construct request body
+dataMap = Map();
+
+actionMap = Map();
+actionMap.put("recipient_name", recipientName);
+actionMap.put("recipient_email", recipientEmail);
+actionMap.put("action_id", "30588000010568116");
+actionMap.put("action_type", "SIGN");
+actionMap.put("signing_order", 1);
+actionMap.put("verify_recipient", false);
+actionMap.put("private_notes", "");
+
+actionsList = List();
+actionsList.add(actionMap);
+
+// Pass form data into document fields
+fieldTextData = Map();
+fieldTextData.put("Name", recipientName);
+fieldTextData.put("Email", recipientEmail);
+
+fieldData = Map();
+fieldData.put("field_text_data", fieldTextData);
+fieldData.put("field_boolean_data", Map());
+fieldData.put("field_date_data", Map());
+fieldData.put("field_radio_data", Map());
+fieldData.put("field_checkboxgroup_data", Map());
+
+// Template map
+templateMap = Map();
+templateMap.put("field_data", fieldData);
+templateMap.put("notes", "Please sign this document");
+templateMap.put("actions", actionsList);
+
+// Final request map
+dataMap.put("templates", templateMap);
+
+// API call
+response = invokeurl
+[
+    url : url
+    type : POST
+    parameters: dataMap.toString()
+    connection: "zoho_sign_connection"
+];
+
+info response;
+
+// Save Document ID for tracking
+if(response.get("requests") != null)
+{
+    docId = response.get("requests").get("request_id");
+    input.Document_ID = docId;
+}
+
+```
+---
