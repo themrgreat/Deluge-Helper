@@ -2253,7 +2253,10 @@ info Mobile_No;
 if(Mobile_No != null)
 {
 	// Prepare WhatsApp API request details
-	toNumber = "+" + Mobile_No;
+	last_ten = Mobile_No.subString(Mobile_No.length() - 10);
+	// info last_ten;
+
+	toNumber = "+91" + Mobile_No;
 	URL = "https://graph.facebook.com/v18.0/101496606391578/messages";
 
 	// API headers (content type + authentication token)
