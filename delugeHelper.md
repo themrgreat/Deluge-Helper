@@ -2310,5 +2310,29 @@ else
 }
 
 ```
+---
+# Search using COQL :
+Note: This function checks how many records exist for the given mobile number in *IVR_Calls* for the current day.
 
+```javascript
+	dateStr = zoho.currentdate.toString("yyyy-MM-dd");
+	startOfDay = dateStr + "T00:00:00+05:30";
+	endOfDay = dateStr + "T23:59:59+05:30";
+
+	queryMap = Map();
+	queryMap.put("select_query","select id from IVR_Calls where Caller_ID = '" + Mobile_No + "' and Created_Time between '" + startOfDay + "' and '" + endOfDay + "'");
+
+	searchRes = invokeurl
+	[
+		url :"https://www.zohoapis.in/crm/v8/coql"
+		type :POST
+		parameters:queryMap.toString()
+		connection:"zohocoql"
+	];
+	// 	info searchRes;
+
+	records = searchRes.get("data");
+	count = ifnull(records.size(),0);
+
+```
 ---
