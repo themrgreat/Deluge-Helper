@@ -2256,7 +2256,7 @@ if(Mobile_No != null)
 	last_ten = Mobile_No.subString(Mobile_No.length() - 10);
 	// info last_ten;
 
-	toNumber = "+91" + Mobile_No;
+	toNumber = "+91" + last_ten;
 	URL = "https://graph.facebook.com/v18.0/101496606391578/messages";
 
 	// API headers (content type + authentication token)
