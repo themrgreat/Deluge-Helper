@@ -342,6 +342,7 @@ if(response.get("requests") != null)
 
 ```javascript
 list = New_Reception[Reference_Code == "G176663"];
+// walkin_list = New_Reception[Id1 == input.Id1] sort by Entry_Time1 desc range from 1 to 10;
 
 // get one record data
 for each rec in list
