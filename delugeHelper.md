@@ -2336,3 +2336,73 @@ Note: This function checks how many records exist for the given mobile number in
 
 ```
 ---
+
+# Send Mail using Deluge with Zoho Sign Template :
+
+```javascript
+
+data = zoho.crm.getRecordById("Deals",id);
+contId = data.get("Contact_Name").get("id");
+contData = zoho.crm.getRecordById("Contacts",contId);
+
+// Form input values
+recipientName = data.get("Deal_Name");
+recipientEmail = contData.get("Email");
+
+// API URL (your template)
+url = " https://sign.zoho.com/api/v1/templates/520214000000047059/createdocument";
+
+// Construct request body
+dataMap = Map();
+actionMap = Map();
+actionMap.put("recipient_name", recipientName);
+actionMap.put("recipient_email", recipientEmail);
+actionMap.put("action_id", "520214000000047080");
+actionMap.put("action_type", "SIGN");
+actionMap.put("signing_order", 1);
+actionMap.put("role", "test");
+actionMap.put("verify_recipient", false);
+actionMap.put("private_notes", "");
+actionsList = List();
+actionsList.add(actionMap);
+
+todayDate = zoho.currentdate.toString("dd MMMM yyyy");
+fieldDateData = Map();
+fieldDateData.put("Date", todayDate);
+
+fieldData = Map();
+fieldData.put("field_text_data", Map());
+fieldData.put("field_boolean_data", Map());
+fieldData.put("field_date_data", fieldDateData);
+fieldData.put("field_radio_data", Map());
+fieldData.put("field_checkboxgroup_data", Map());
+
+// Template map
+templateMap = Map();
+templateMap.put("field_data", fieldData);
+templateMap.put("notes", "");
+templateMap.put("actions", actionsList);
+
+// Final request map
+dataMap.put("templates", templateMap);
+
+// API call
+response = invokeurl
+[
+    url : url
+    type : POST
+    parameters: dataMap.toString()
+    connection: "zoho_sign_connection"
+];
+info response;
+
+// Save Document ID for tracking
+if(response.get("requests") != null)
+{
+    docId = response.get("requests").get("request_id");
+    info docId;
+}
+
+```
+
+---
