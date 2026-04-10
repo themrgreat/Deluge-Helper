@@ -2406,3 +2406,146 @@ if(response.get("requests") != null)
 ```
 
 ---
+
+# Send mail using deluge with Mail Merge Template (Basic):
+
+```javascript
+recordId = "1833590000049735036";
+
+mailMergeMap = Map();
+
+// Template
+templateMap = Map();
+templateMap.put("name", "Proposal Template");
+mailMergeMap.put("mail_merge_template", templateMap);
+
+// From address
+fromMap = Map();
+fromMap.put("type", "email");
+fromMap.put("value", "test@internetmoguls.com");
+mailMergeMap.put("from_address", fromMap);
+
+// To address list
+toList = List();
+
+to1 = Map();
+to1.put("type", "email");
+to1.put("value", "test@easytocheck.com");
+
+toList.add(to1);
+
+mailMergeMap.put("to_address", toList);
+
+// Subject
+mailMergeMap.put("subject", "Internet Moguls Proposal");
+
+// Message body
+mailMergeMap.put("message", "");
+
+// Wrap in main list
+mailMergeList = List();
+mailMergeList.add(mailMergeMap);
+
+// Final request body
+requestBody = Map();
+requestBody.put("send_mail_merge", mailMergeList);
+
+// API Call
+response = invokeurl
+[
+    url :"https://www.zohoapis.com/crm/v8/Deals/" + recordId + "/actions/send_mail_merge"
+    type :POST
+    parameters: requestBody.toString()
+    connection:"zohocrm"
+];
+
+info response;
+```
+
+---
+
+# Send mail using deluge with Mail Merge Template (Advance):
+
+```javascript
+recordId = "1234567890";
+templateName = "mailmergename";
+mailMergeMap = Map();
+
+// Template
+templateMap = Map();
+templateMap.put("name", templateName);
+mailMergeMap.put("mail_merge_template", templateMap);
+
+// From address
+fromMap = Map();
+fromMap.put("type", "email");
+fromMap.put("value", "admin@gmail.com");
+mailMergeMap.put("from_address", fromMap);
+
+// To address list
+toList = List();
+
+to1 = Map();
+to1.put("type", "email");
+to1.put("value", "test1@gmail.com");
+
+to2 = Map();
+to2.put("type", "email");
+to2.put("value", "test2@gmail.com");
+
+toList.add(to1);
+toList.add(to2);
+
+mailMergeMap.put("to_address", toList);
+
+// Subject
+mailMergeMap.put("subject", "Internet Moguls Proposal");
+
+//..........//
+// CC emails
+ccList = List();
+cc = Map();
+cc.put("type", "email");
+cc.put("value", "brie.c@gmail.com");
+ccList.add(cc);
+
+mailMergeMap.put("cc_email", ccList);
+
+// BCC emails
+bccList = List();
+bcc = Map();
+bcc.put("type", "email");
+bcc.put("value", "ceo.zylker@gmail.com");
+bccList.add(bcc);
+
+mailMergeMap.put("bcc_email", bccList);
+
+// Attachment settings
+mailMergeMap.put("type", "attachment");
+mailMergeMap.put("attachment_name", "testdocument");
+//..........//
+
+// Message body
+mailMergeMap.put("message", "");
+
+// Wrap in main list
+mailMergeList = List();
+mailMergeList.add(mailMergeMap);
+
+// Final request body
+requestBody = Map();
+requestBody.put("send_mail_merge", mailMergeList);
+
+// API Call
+response = invokeurl
+[
+    url :"https://www.zohoapis.com/crm/v8/Deals/" + recordId + "/actions/send_mail_merge"
+    type :POST
+    parameters: requestBody.toString()
+    connection:"zohocrm"
+];
+
+info response;
+```
+
+---
