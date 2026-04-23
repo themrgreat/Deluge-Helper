@@ -2669,3 +2669,83 @@ zoho.crm.invokeConnector("crm.delete",deleteRecordMap);
 ```
 
 ---
+
+# Create Lead from IndiaMart using webhook :
+
+```javascript
+newMap = crmAPIRequest.get("body").get("RESPONSE").toMap();
+queryId = newMap.get("UNIQUE_QUERY_ID");
+
+get_response = zoho.crm.searchRecords("Leads","(indiamartleads__IM_QUERY_ID:equals:" + queryId + ")").toString();
+
+if(get_response == "")
+{
+	enqAddress = newMap.get("SENDER_ADDRESS");
+	mob = newMap.get("SENDER_MOBILE");
+	phone = newMap.get("SENDER_MOBILE_ALT");
+
+	if(phone is not null)
+	{
+		phone = phone.getAlphaNumeric();
+	}
+
+	company = newMap.get("SENDER_COMPANY");
+	sender_name = newMap.get("SENDER_NAME");
+	new_subject = newMap.get("RECEIVER_MOBILE");
+	date_time = newMap.get("QUERY_TIME");
+	sender_email = newMap.get("SENDER_EMAIL");
+	msg = ifnull(newMap.get("QUERY_MESSAGE"),"novalue");
+
+	if(msg != "novalue")
+	{
+		msg = msg.replaceAll("<br>",".");
+		msg = msg.replaceAll("\n","");
+		msg = msg.replaceAll("\r","");
+	}
+
+	state = newMap.get("SENDER_STATE");
+	enq_city = newMap.get("SENDER_CITY");
+	product_name = newMap.get("QUERY_PRODUCT_NAME");
+	country_iso = newMap.get("SENDER_COUNTRY_ISO");
+	im_query_type = newMap.get("QUERY_TYPE");
+
+	if(im_query_type == "W")
+	{
+		fin_query_type = "Direct Enquiry";
+	}
+	if(im_query_type == "P")
+	{
+		fin_query_type = "Call Enquiries";
+	}
+	if(im_query_type == "B")
+	{
+		fin_query_type = "Purchased Buy Leads";
+	}
+
+	myFieldMap = Map:String();
+	myFieldMap.put("Last_Name",sender_name);
+	myFieldMap.put("Mobile",mob);
+	myFieldMap.put("Phone",phone);
+	myFieldMap.put("Email",sender_email);
+	myFieldMap.put("Country",country_iso);
+	myFieldMap.put("State",state);
+	myFieldMap.put("Description",msg);
+	myFieldMap.put("Lead_Source","IndiaMart");
+	myFieldMap.put("Company",company);
+	myFieldMap.put("City",enq_city);
+	myFieldMap.put("indiamartleads__IM_QUERY_ID",queryId);
+	myFieldMap.put("indiamartleads__IM_SUBJECT",new_subject);
+	myFieldMap.put("indiamartleads__IM_ENQUIRY_TIME",date_time);
+	myFieldMap.put("indiamartleads__IM_PRODUCT",product_name);
+	myFieldMap.put("indiamartleads__IM_Query_TYPE",fin_query_type);
+	myFieldMap.put("Street",enqAddress);
+	response = zoho.crm.upsert("Leads",myFieldMap,{"trigger":{"workflow"}});
+
+	//response = zoho.crm.createRecord("Leads",myFieldMap,{"trigger":{"workflow","blueprint"}});
+	//response = zoho.crm.upsert("Leads",myFieldMap,{"duplicate_check_fields":{"indiamartleads__IM_QUERY_ID"},"trigger":{"workflow"}});
+}
+
+return "200";
+```
+
+---
