@@ -2759,5 +2759,68 @@ if(get_response == "")
 
 return "200";
 ```
+---
+
+# Update Subform using Deluge ( Part - 1 ) :
+
+```javascript
+// get parent record
+parentRec = zoho.crm.getRecordById("Module_Name", recordId);
+
+// get subform
+subform = parentRec.get("Subform_API_Name");
+
+// prepare subform update
+subformList = List();
+
+rowMap = Map();
+rowMap.put("id", subformRowId);   // mandatory (subform row id)
+
+// update fields (add as needed)
+rowMap.put("Field_API_1", value1);
+rowMap.put("Field_API_2", value2);
+
+subformList.add(rowMap);
+
+// update parent
+updateMap = Map();
+updateMap.put("Subform_API_Name", subformList);
+
+resp = zoho.crm.updateRecord("Module_Name", recordId, updateMap);
+info resp;
+```
+
+---
+
+# Update Subform using Deluge ( Part - 2 ) :
+
+```javascript
+// get parent record
+parentRec = zoho.crm.getRecordById("Module_Name", recordId);
+
+// get subform
+subform = parentRec.get("Subform_API_Name");
+
+subformList = List();
+
+for each row in subform
+{
+    rowMap = Map();
+    rowMap.put("id", row.get("id"));   // mandatory
+
+    // update fields (add as needed)
+    rowMap.put("Field_API_1", row.get("Field_API_1"));
+    rowMap.put("Field_API_2", row.get("Field_API_2"));
+
+    subformList.add(rowMap);
+}
+
+// update parent
+updateMap = Map();
+updateMap.put("Subform_API_Name", subformList);
+
+resp = zoho.crm.updateRecord("Module_Name", recordId, updateMap);
+info resp;
+```
 
 ---
