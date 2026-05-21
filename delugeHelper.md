@@ -2907,3 +2907,73 @@ info up_inv;
 ```
 
 ---
+
+# Prevent Duplicate Records & Escape XML Special Characters :
+
+Prevent Duplicate Records
+```javascript
+
+processedIds = List();
+
+for each record in records
+{
+	recordId = record.get("id");
+
+	if(processedIds.contains(recordId))
+	{
+		continue;
+	}
+
+	processedIds.add(recordId);
+
+}
+```
+Escape XML Special Characters
+
+```javascript
+// Raw text
+value = "do&dont";
+
+// Escape XML characters
+value = value.replaceAll("&","&amp;");
+value = value.replaceAll("<","&lt;");
+value = value.replaceAll(">","&gt;");
+value = value.replaceAll("\"","&quot;");
+value = value.replaceAll("'","&apos;");
+value = value.replaceAll("/","&#x2F;");
+value = value.replaceAll("`","&#x60;");
+
+```
+Generic Reusable XML Escape Loop
+```javascript
+
+// Store raw values
+rawFields = Map();
+rawFields.put("name","Government & Defense");
+rawFields.put("company","A < B Pvt. Ltd.");
+rawFields.put("owner","John's Team");
+
+// Escape all fields dynamically
+escapedFields = Map();
+
+for each key in rawFields.keys()
+{
+	val = ifnull(rawFields.get(key),"---").toString();
+
+	value = value.replaceAll("&","&amp;");
+	value = value.replaceAll("<","&lt;");
+	value = value.replaceAll(">","&gt;");
+	value = value.replaceAll("\"","&quot;");
+	value = value.replaceAll("'","&apos;");
+	value = value.replaceAll("/","&#x2F;");
+	value = value.replaceAll("`","&#x60;");
+
+	escapedFields.put(key,val);
+}
+
+// Get escaped values
+safeName = escapedFields.get("name");
+safeCompany = escapedFields.get("company");
+safeOwner = escapedFields.get("owner");
+```
+---
