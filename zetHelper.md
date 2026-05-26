@@ -9,9 +9,48 @@ Zoho CRM widget for managing and bulk-approving leave requests from the Portal_P
 A custom Zoho CRM widget for discovering and filtering potential partners with structured search and management capabilities.
 
 
+### Documentation
+
+- [Zoho CRM Widgets Overview](https://www.zoho.com/crm/developer/docs/widgets/)
+
+- [Installing the Zoho CLI](https://www.zoho.com/crm/developer/docs/widgets/install-cli.html)
+
+- [Zoho Widgets JS SDK Documentation](https://help.zwidgets.com/help/latest/index.html)
+
+- [Zoho CRM JS SDK Initialization Guide](https://www.zohocrm.dev/explore/widgets/latest/jssdk#init)
+
+- [Create a Zoho CRM Widget](https://www.zoho.com/crm/developer/docs/widgets/create-widget.html)
+
+
 ---
 
-# ZET Code for CRM (Async Vesion) Part - 1 :
+# Base HTML Structure for Zoho CRM Widget :
+
+```html
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="./widget.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- here you can write... -->
+    </div>
+
+    <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
+    <script src="./widget.js"></script>
+
+</body>
+
+</html>
+```
+
+---
+
+# Zoho CRM Widget JavaScript Setup — Async/Await :
 
 ```javascript
 
@@ -52,10 +91,9 @@ console.log("......Last......");
 
 ```
 
-
 ---
 
-# ZET Code for CRM (.then Vesion) Part - 2 :
+# Zoho CRM Widget JavaScript Setup (Promise `.then()` Version) :
 
 ```javascript
 
