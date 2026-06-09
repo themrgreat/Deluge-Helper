@@ -2987,7 +2987,8 @@ Note: Hashes email & phone (SHA-256) before sending.
 lead = zoho.crm.getRecordById("Leads",id);
 
 // Lead Details
-fullName = lead.get("Full_Name");
+firstName = lead.get("First_Name");
+lastName = lead.get("Last_Name");
 email = lead.get("Email");
 mobile = lead.get("Mobile");
 
@@ -2998,8 +2999,20 @@ utmTerm = lead.get("UTM_Term");
 utmAdvert = lead.get("UTM_Advert");
 
 // Hash Email & Mobile
+hashedFn = "";
+hashedLn = "";
 hashedEmail = "";
 hashedPhone = "";
+
+if(firstName != null && firstName != "")
+{
+	hashedFn = zoho.encryption.sha256(firstName.toLowerCase());
+}
+
+if(lastName != null && lastName != "")
+{
+	hashedLn = zoho.encryption.sha256(lastName.toLowerCase());
+}
 
 if(email != null && email != "")
 {
@@ -3019,6 +3032,20 @@ eventTime = zoho.currenttime.toLong() / 1000;
 userData = Map();
 
 userData.put("lead_id",id);
+
+if(hashedFn != "")
+{
+	fnList = List();
+	fnList.add(hashedFn);
+	userData.put("fn",fnList);
+}
+
+if(hashedLn != "")
+{
+	lnList = List();
+	lnList.add(hashedLn);
+	userData.put("ln",lnList);
+}
 
 if(hashedEmail != "")
 {
