@@ -2977,3 +2977,103 @@ safeCompany = escapedFields.get("company");
 safeOwner = escapedFields.get("owner");
 ```
 ---
+
+# Send Leads to Meta via Conversions API (CAPI) :
+
+```javascript
+Note: Hashes email & phone (SHA-256) before sending.
+
+// Fetch Lead
+lead = zoho.crm.getRecordById("Leads",id);
+
+// Lead Details
+fullName = lead.get("Full_Name");
+email = lead.get("Email");
+mobile = lead.get("Mobile");
+
+// UTM Fields
+utmCampaign = lead.get("UTM_Campaign");
+utmMedium = lead.get("UTM_Medium");
+utmTerm = lead.get("UTM_Term");
+utmAdvert = lead.get("UTM_Advert");
+
+// Hash Email & Mobile
+hashedEmail = "";
+hashedPhone = "";
+
+if(email != null && email != "")
+{
+	hashedEmail = zoho.encryption.sha256(email.toLowerCase());
+}
+
+if(mobile != null && mobile != "")
+{
+	// cleanPhone = mobile.replaceAll("[^0-9]", "");
+	hashedPhone = zoho.encryption.sha256(mobile);
+}
+
+// Event Timestamp (Unix)
+eventTime = zoho.currenttime.toLong() / 1000;
+
+// Build User Data
+userData = Map();
+
+userData.put("lead_id",id);
+
+if(hashedEmail != "")
+{
+	emList = List();
+	emList.add(hashedEmail);
+	userData.put("em",emList);
+}
+
+if(hashedPhone != "")
+{
+	phList = List();
+	phList.add(hashedPhone);
+	userData.put("ph",phList);
+}
+
+// Custom Data
+customData = Map();
+customData.put("event_source","crm");
+customData.put("lead_event_source","Zoho CRM");
+customData.put("utm_campaign",utmCampaign);
+customData.put("utm_medium",utmMedium);
+customData.put("utm_term",utmTerm);
+customData.put("utm_advert",utmAdvert);
+
+// Event Object
+eventObj = Map();
+eventObj.put("action_source","system_generated");
+eventObj.put("event_name","Lead");
+eventObj.put("event_time",eventTime);
+eventObj.put("user_data",userData);
+eventObj.put("custom_data",customData);
+
+// Data Array
+dataList = List();
+dataList.add(eventObj);
+
+// Meta Credentials
+pixelId = "727111683624460";
+accessToken = "EAAU9d1ho38wB";
+
+// Payload
+payload = Map();
+payload.put("data",dataList);
+payload.put("access_token",accessToken);
+
+// API Call
+response = invokeurl
+[
+	url :"https://graph.facebook.com/v18.0/" + pixelId + "/events"
+	type :POST
+	parameters:payload.toString()
+	headers:{"Content-Type":"application/json"}
+];
+
+info response;
+
+```
+---
