@@ -2792,9 +2792,15 @@ info resp;
 
 ---
 
-# Update Subform using Deluge ( Part - 2 ) :
+# Update Specific Subform Row using Deluge ( Part - 2 ) :
 
 ```javascript
+recordId = "Parent_Record_ID";
+targetSubformRowId = "Subform_Row_ID";
+
+value1 = "New Value 1";
+value2 = "New Value 2";
+
 // get parent record
 parentRec = zoho.crm.getRecordById("Module_Name", recordId);
 
@@ -2805,14 +2811,20 @@ subformList = List();
 
 for each row in subform
 {
-    rowMap = Map();
-    rowMap.put("id", row.get("id"));   // mandatory
+	rowMap = Map();
+	rowId = row.get("id");
 
-    // update fields (add as needed)
-    rowMap.put("Field_API_1", row.get("Field_API_1"));
-    rowMap.put("Field_API_2", row.get("Field_API_2"));
+	// Always preserve the row
+	rowMap.put("id", rowId);
 
-    subformList.add(rowMap);
+	// Update only the target row
+	if(targetSubformRowId == rowId)
+	{
+		rowMap.put("Field_API_1", value1);
+		rowMap.put("Field_API_2", value2);
+	}
+
+	subformList.add(rowMap);
 }
 
 // update parent
@@ -2822,7 +2834,6 @@ updateMap.put("Subform_API_Name", subformList);
 resp = zoho.crm.updateRecord("Module_Name", recordId, updateMap);
 info resp;
 ```
-
 ---
 
 # Generate Dynamic Invoice Number :
