@@ -494,26 +494,26 @@ Json Format -- for Uplad File In WorkDrive From Attachments in Deals --
 
 
 ```javascript
-	dealId = "1136779000000758081";
-	getDealData = zoho.crm.getRecordById("Deals", dealId);
-	existingTags = getDealData.get("Tag");
-	// info existingTags;
-	
-	existingTags = List();
-	
-	newTag1 = Map();
-	newTag1.put("name","POP");
-	existingTags.add(newTag1);
-	
-	newTag2 = Map();
-	newTag2.put("name","POPPY");
-	existingTags.add(newTag2);
-	
-	updateMap = Map();
-	updateMap.put("Tag",existingTags);
-	info updateMap;
-	update = zoho.crm.updateRecord("Deals", dealId, updateMap);
-	info update;
+dealId = "1136779000000758081";
+
+// Tags that will replace all existing tags on the deal
+replacementTags = List();
+
+tag1 = Map();
+tag1.put("name","POP");
+replacementTags.add(tag1);
+
+tag2 = Map();
+tag2.put("name","POPPY");
+replacementTags.add(tag2);
+
+updateMap = Map();
+updateMap.put("Tag", replacementTags);
+
+info updateMap;
+
+update = zoho.crm.updateRecord("Deals", dealId, updateMap);
+info update;
 ```
 
 Json Format -- Update Tag --
