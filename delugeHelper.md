@@ -3115,3 +3115,86 @@ info response;
 
 ```
 ---
+
+# Create Subform using Deluge ( Part - 1 ) :
+
+```javascript
+// prepare subform
+subformList = List();
+
+rowMap = Map();
+
+// add fields (as needed)
+rowMap.put("Field_API_1", value1);
+rowMap.put("Field_API_2", value2);
+
+subformList.add(rowMap);
+
+// add to parent map
+parentMap = Map();
+parentMap.put("Subform_API_Name", subformList);
+
+// create parent record
+resp = zoho.crm.createRecord("Module_Name", parentMap);
+info resp;
+```
+
+Json Format -- for Creating Single Subform Row --
+```json
+{
+  "Subform_API_Name": [
+    {
+      "Field_API_1": "value1",
+      "Field_API_2": "value2"
+    }
+  ]
+}
+```
+---
+
+# Create Multiple Subform Rows using Deluge ( Part - 2 ) :
+
+```javascript
+// prepare subform
+subformList = List();
+
+for each item in sourceList
+{
+	rowMap = Map();
+
+	// map fields (as needed)
+	rowMap.put("Field_API_1", item.get("Key_1"));
+	rowMap.put("Field_API_2", item.get("Key_2"));
+
+	subformList.add(rowMap);
+}
+
+// add to parent map
+parentMap = Map();
+parentMap.put("Subform_API_Name", subformList);
+
+// create parent record
+resp = zoho.crm.createRecord("Module_Name", parentMap);
+info resp;
+```
+
+Json Format -- for Creating Multiple Subform Rows --
+```json
+{
+  "Subform_API_Name": [
+    {
+      "Field_API_1": "value1",
+      "Field_API_2": "value2"
+    },
+    {
+      "Field_API_1": "value3",
+      "Field_API_2": "value4"
+    },
+    {
+      "Field_API_1": "value5",
+      "Field_API_2": "value6"
+    }
+  ]
+}
+```
+---
