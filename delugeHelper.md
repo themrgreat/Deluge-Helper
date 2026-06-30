@@ -3198,3 +3198,101 @@ Json Format -- for Creating Multiple Subform Rows --
 }
 ```
 ---
+
+# Auto Generate Monthly Collection Records from Deals :
+
+```javascript
+Note - Scheduler-based function that runs automatically on the last day of every month. It retrieves active Deals using COQL for the current billing month, calculates prorated rental charges for the first and last billing months using the Closing Date and Agreement End Date, applies the full monthly rental amount for intermediate months, and automatically creates Collection records with the appropriate Invoice Date and Rental Amount.
+
+today = zoho.currentdate;
+firstDay = today.toString("yyyy-MM") + "-01";
+lastDay = today.eomonth(0).toString("yyyy-MM-dd");
+currentMonth = today.getMonth();
+currentYear = today.getYear();
+daysInMonth = today.eomonth(0).getDay();
+
+queryMap = Map();
+queryMap.put("select_query","select id, Deal_Name, Agreement_End_Date, Amount, Closing_Date, Genset, Account_Name from Deals where Closing_Date <= '" + lastDay + "' and Agreement_End_Date >= '" + firstDay + "' limit 0,2000");
+
+response = invokeurl
+[
+	url :"https://www.zohoapis.com/crm/v8/coql"
+	type :POST
+	parameters:queryMap.toString()
+	connection:"zohocoql"
+];
+
+info response;
+
+deal_data = response.get("data");
+
+for each deal in deal_data
+{
+	amount = ifnull(deal.get("Amount"),0).toDecimal();
+	closingDate = deal.get("Closing_Date").toDate();
+	agreementEndDate = deal.get("Agreement_End_Date").toDate();
+
+	isFirst = (closingDate.getMonth() == currentMonth && closingDate.getYear() == currentYear);
+	isLast = (agreementEndDate.getMonth() == currentMonth && agreementEndDate.getYear() == currentYear);
+
+	invoiceAmount = amount;
+	invoiceDate = firstDay;
+
+	if(isFirst && isLast)
+	{
+		billableDays = agreementEndDate.getDay() - closingDate.getDay() + 1;
+		invoiceAmount = ((amount / daysInMonth) * billableDays).round(2);
+		invoiceDate = closingDate;
+	}
+
+	else if(isFirst)
+	{
+		if(closingDate.getDay() == 1)
+		{
+			invoiceAmount = amount;
+		}
+		else
+		{
+			billableDays = daysInMonth - closingDate.getDay() + 1;
+			invoiceAmount = ((amount / daysInMonth) * billableDays).round(2);
+		}
+		invoiceDate = closingDate;
+	}
+
+	else if(isLast)
+	{
+		if(agreementEndDate.getDay() == daysInMonth)
+		{
+			invoiceAmount = amount;
+		}
+		else
+		{
+			invoiceAmount = ((amount / daysInMonth) * agreementEndDate.getDay()).round(2);
+		}
+		invoiceDate = agreementEndDate;
+	}
+	
+	else
+	{
+		invoiceAmount = amount;
+		invoiceDate = firstDay;
+	}
+
+	siteId = if(deal.get("Account_Name") != null, deal.get("Account_Name").get("id"), "");
+	gensetId = if(deal.get("Genset") != null, deal.get("Genset").get("id"), "");
+
+	mp = Map();
+	mp.put("Name",deal.get("Deal_Name"));
+	mp.put("Rental_Pipeline",deal.get("id"));
+	mp.put("Rental_Amount",invoiceAmount);
+	mp.put("Invoice_Date",invoiceDate);
+	mp.put("Site",siteId);
+	mp.put("Installed_Genset",gensetId);
+
+	create = zoho.crm.createRecord("Collections",mp);
+	info create;
+	
+// 	break;
+}
+```
+---
