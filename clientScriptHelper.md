@@ -342,3 +342,125 @@ const response = ZDK.Apps.CRM.Connections.invoke(
 console.log(response);
 ```
 ---
+
+# Auto-Populate Collection Details and Prorated Rental Amount (Client Script) :
+Note - Client script that automatically populates the Collection Name, Rental Amount, and Monthly Net Total based on the selected Rental Pipeline (Deal). It calculates the billing period for the current month, applies prorated rental calculations when the agreement starts or ends within the month, and updates the form fields dynamically before the record is saved.
+
+```javascript
+console.clear();
+
+const rentalPipeline = ZDK.Page.getField("Rental_Pipeline").getValue();
+if (!rentalPipeline) return;
+
+const collectionType = ZDK.Page.getField("Collection_Type").getValue() || "";
+
+const response = await zrc.get("/crm/v8/Deals/" + rentalPipeline.id);
+const deal = response.data.data[0];
+
+const siteName = deal.Account_Name?.name || "";
+const amount = Number(deal.Amount || 0);
+
+const closingDate = new Date(deal.Closing_Date);
+const agreementEndDate = new Date(deal.Agreement_End_Date);
+
+// -----------------------------
+// Current Month
+// -----------------------------
+const today = new Date();
+
+const firstDay = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    1
+);
+
+const lastDay = new Date(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    0
+);
+
+// -----------------------------
+// Start Date
+// -----------------------------
+let billingStart = new Date(firstDay);
+
+if (
+    closingDate.getFullYear() === today.getFullYear() &&
+    closingDate.getMonth() === today.getMonth()
+) {
+    billingStart = new Date(closingDate);
+}
+
+// -----------------------------
+// End Date
+// -----------------------------
+let billingEnd = new Date(lastDay);
+
+if (
+    agreementEndDate.getFullYear() === today.getFullYear() &&
+    agreementEndDate.getMonth() === today.getMonth()
+) {
+    billingEnd = new Date(agreementEndDate);
+}
+
+// -----------------------------
+// Collection Name
+// -----------------------------
+const options = {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+};
+
+// Use closing date when it is in the current month.
+// Otherwise, use the first day of the month.
+const fromDate = billingStart.toLocaleDateString("en-GB", options);
+const toDate = billingEnd.toLocaleDateString("en-GB", options);
+
+const nameParts = [
+    `(${fromDate} - ${toDate})`,
+    collectionType,
+    siteName
+].filter(Boolean);
+
+ZDK.Page.getField("Name").setValue(nameParts.join(" - "));
+
+if (collectionType !== "Rental") {
+    return;
+}
+
+// -----------------------------
+// Rental Amount
+// -----------------------------
+
+// Convert dates to UTC date-only values.
+// This prevents timezone/DST issues in day calculations.
+const startUTC = Date.UTC(
+    billingStart.getFullYear(),
+    billingStart.getMonth(),
+    billingStart.getDate()
+);
+
+const endUTC = Date.UTC(
+    billingEnd.getFullYear(),
+    billingEnd.getMonth(),
+    billingEnd.getDate()
+);
+
+const millisecondsPerDay = 24 * 60 * 60 * 1000;
+
+// Inclusive days:
+// 7th to 31st = 25 days
+const billableDays =
+    Math.floor((endUTC - startUTC) / millisecondsPerDay) + 1;
+
+const totalDays = lastDay.getDate();
+
+const rentalAmount =
+    Math.round(((amount * billableDays) / totalDays) * 100) / 100;
+
+ZDK.Page.getField("Rental_Amount").setValue(rentalAmount);
+ZDK.Page.getField("Monthly_Net_Total").setValue(rentalAmount);
+```
+---
