@@ -3200,10 +3200,9 @@ Json Format -- for Creating Multiple Subform Rows --
 ---
 
 # Auto Generate Monthly Collection Records from Deals :
-
-```javascript
 Note - Scheduler-based function that runs automatically on the last day of every month. It retrieves active Deals using COQL for the current billing month, calculates prorated rental charges for the first and last billing months using the Closing Date and Agreement End Date, applies the full monthly rental amount for intermediate months, and automatically creates Collection records with the appropriate Invoice Date and Rental Amount.
 
+```javascript
 today = zoho.currentdate;
 firstDay = today.toString("yyyy-MM") + "-01";
 lastDay = today.eomonth(0).toString("yyyy-MM-dd");
@@ -3304,9 +3303,11 @@ Note - Calculates the Monthly Net Total for a given month by summing all Rental 
 // Get current Collections record
 record = zoho.crm.getRecordById("Collections",id);
 nameValue = ifnull(record.get("Name"),"");
+
 // Find month
 months = {"January","February","March","April","May","June","July","August","September","October","November","December"};
 monthFound = "";
+
 for each  month in months
 {
 	if(nameValue.contains(month))
@@ -3315,27 +3316,35 @@ for each  month in months
 		break;
 	}
 }
+
 // Find year
 yearFound = "";
 yearIndex = nameValue.indexOf("20");
+
 if(yearIndex != -1)
 {
 	yearFound = nameValue.subString(yearIndex,yearIndex + 4);
 }
+
 searchText = monthFound + " " + yearFound;
+
 if(monthFound == "" || yearFound == "")
 {
 	info "Could not determine Month/Year from Name: " + nameValue;
 	return;
 }
+
 info "Searching for: " + searchText;
+
 totalRentalAmount = 0.0;
 totalMonthlyExpenses = 0.0;
 rentalRecordId = "";
+
 // Fetch all records for the same Month & Year
 query = "select id, Collection_Type, Rental_Amount, Monthly_Expenses from Collections where Name like '%" + searchText + "%'";
 queryMap = Map();
 queryMap.put("select_query",query);
+
 response = invokeurl
 [
 	url :"https://www.zohoapis.com/crm/v8/coql"
@@ -3343,6 +3352,7 @@ response = invokeurl
 	parameters:queryMap.toString()
 	connection:"zohocoql"
 ];
+
 if(response.containsKey("data"))
 {
 	records = response.get("data");
@@ -3356,10 +3366,12 @@ if(response.containsKey("data"))
 		}
 	}
 }
+
 monthlyNetTotal = totalRentalAmount - totalMonthlyExpenses;
 info "Total Rental Amount : " + totalRentalAmount;
 info "Total Monthly Expenses : " + totalMonthlyExpenses;
 info "Monthly Net Total : " + monthlyNetTotal;
+
 if(rentalRecordId != "")
 {
 	updateMap = Map();
@@ -3407,8 +3419,10 @@ for each  pg in pages
 	// 	break;
 }
 info "done";
+
 // create collections
 today = zoho.currentdate;
+
 // Bill CURRENT month in advance
 billingDate = today;
 firstDay = billingDate.toString("yyyy-MM") + "-01";
@@ -3416,10 +3430,15 @@ lastDay = billingDate.eomonth(0).toString("yyyy-MM-dd");
 currentMonth = billingDate.getMonth();
 currentYear = billingDate.getYear();
 daysInMonth = billingDate.eomonth(0).getDay();
+
 queryMap = Map();
+
 // 	"select id, Deal_Name, Agreement_End_Date, Amount, Closing_Date, Genset, Account_Name from Deals where Closing_Date <= '" + lastDay + "' and Agreement_End_Date >= '" + firstDay + "' limit 0,2000"
+
 select_query = "select id, Deal_Name, Agreement_End_Date, Amount, Closing_Date, Genset, Account_Name from Deals where ((Closing_Date <= '" + lastDay + "' and Agreement_End_Date >= '" + firstDay + "') and Stage != 'Closed Lost') limit 0,2000";
+
 queryMap.put("select_query",select_query);
+
 response = invokeurl
 [
 	url :"https://www.zohoapis.com/crm/v8/coql"
@@ -3427,7 +3446,9 @@ response = invokeurl
 	parameters:queryMap.toString()
 	connection:"zohocoql"
 ];
+
 info response;
+
 deal_data = response.get("data");
 for each  deal in deal_data
 {
@@ -3436,8 +3457,10 @@ for each  deal in deal_data
 	agreementEndDate = deal.get("Agreement_End_Date").toDate();
 	isFirst = closingDate.getMonth() == currentMonth && closingDate.getYear() == currentYear;
 	isLast = agreementEndDate.getMonth() == currentMonth && agreementEndDate.getYear() == currentYear;
+
 	invoiceAmount = amount;
 	invoiceDate = lastDay;
+
 	if(isFirst && isLast)
 	{
 		billableDays = agreementEndDate.getDay() - closingDate.getDay() + 1;
@@ -3479,9 +3502,11 @@ for each  deal in deal_data
 	gensetId = if(deal.get("Genset") != null,deal.get("Genset").get("id"),"");
 	startDateText = billingDate.toString("d MMMM yyyy");
 	endDateText = billingDate.eomonth(0).toString("d MMMM yyyy");
+
 	// 	collectionName = "(" + startDateText + " - " + endDateText + ") - " + siteName;
 	collectionType = "Rental";
 	collectionName = "(" + startDateText + " - " + endDateText + ") - " + collectionType + " - " + siteName;
+
 	mp = Map();
 	mp.put("Name",collectionName);
 	mp.put("Rental_Pipeline",deal.get("id"));
@@ -3492,6 +3517,7 @@ for each  deal in deal_data
 	mp.put("Installed_Genset",gensetId);
 	mp.put("Status","Active");
 	mp.put("Collection_Type","Rental");
+
 	create = zoho.crm.createRecord("Collections",mp);
 	info create;
 	// 	break;
@@ -3503,10 +3529,16 @@ for each  deal in deal_data
 Note - Standalone function that retrieves the latest Transfer record for a Rental Pipeline (Deal), extracts the uninstallation date, and updates the Deal Name by refreshing the genset rating and appending or replacing the transfer (TR) date while preserving the existing naming convention.
 
 ```javascript
+rentalId = "1234567890";
+dealName = "siteName/30KVA";
+gensetRating = "30KVA";
+
 queryMap = Map();
+
 // Pulls the most recent Transfer record with specified fields
 coqlQuery = "select id, Name, Uninstalled_Date from Transfers where Rental_Pipeline = '" + rentalId + "' order by Created_Time desc limit 1";
 queryMap.put("select_query",coqlQuery);
+
 response = invokeurl
 [
 	url :"https://www.zohoapis.com/crm/v8/coql"
@@ -3515,14 +3547,16 @@ response = invokeurl
 	connection:"zohocoql"
 ];
 info response;
+
 if(response.isEmpty())
 {
 	info "empty";
 	return "return empty - coql";
 }
+
 uninstallationDate = response.getJSON("data").getJSON("Uninstalled_Date").toString("dd MMM yyyy");
 info uninstallationDate;
-//////////////////////////////////////////////////////////////////////////////////////////////////////
+
 if(dealName.containsIgnoreCase("TR"))
 {
 	arr = dealName.toList("/");
@@ -3532,12 +3566,14 @@ else
 {
 	arr = dealName.toList("/");
 	newName = arr.get(0) + "/" + arr.get(1) + "/" + if(gensetRating != null && gensetRating != "",gensetRating,arr.get(2));
+
 	if(uninstallationDate != null && uninstallationDate != "")
 	{
 		newName = newName + "/TR-" + uninstallationDate;
 	}
 }
 info newName;
+
 update = zoho.crm.updateRecord("Deals",rentalId,{"Deal_Name":newName});
 return update;
 ```
