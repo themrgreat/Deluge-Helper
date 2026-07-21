@@ -3530,7 +3530,7 @@ Note - Standalone function that retrieves the latest Transfer record for a Renta
 
 ```javascript
 rentalId = "1234567890";
-dealName = "siteName/30KVA";
+dealName = "siteName/branchName/30KVA";
 gensetRating = "30KVA";
 
 queryMap = Map();
