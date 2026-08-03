@@ -8,6 +8,9 @@ Zoho CRM widget for managing and bulk-approving leave requests from the Portal_P
 [📄 Partner Search](https://github.com/MrGreat-0/Partner-Search)
 A custom Zoho CRM widget for discovering and filtering potential partners with structured search and management capabilities.
 
+[📄 Weekly Plan](https://github.com/themrgreat/Weekly-Plan)
+Zoho CRM widget for weekly School/Dealer visit planning with holiday-aware scheduling and automated Weekly Planner/Meeting record creation.
+
 
 ### Documentation
 
