@@ -11,6 +11,9 @@ A custom Zoho CRM widget for discovering and filtering potential partners with s
 [📄 Weekly Plan](https://github.com/themrgreat/Weekly-Plan)
 Zoho CRM widget for weekly School/Dealer visit planning with holiday-aware scheduling and automated Weekly Planner/Meeting record creation.
 
+[📄 Current FY Order](https://github.com/themrgreat/Current-FY-Order)
+Zoho CRM embedded widget that aggregates product quantities by School vs. Dealer deals for the current financial year, with automatic FY rollover and EDD field auto-detection.
+
 
 ### Documentation
 
