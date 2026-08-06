@@ -3578,3 +3578,76 @@ update = zoho.crm.updateRecord("Deals",rentalId,{"Deal_Name":newName});
 return update;
 ```
 ---
+
+# Restrict Date Changes & Prevent Past Date Entry using Validation Rule :
+Note - A Zoho CRM Deluge validation function for the Events module that prevents users from changing the date of an existing event (while allowing time edits) and blocks past dates on new event creation. Returns specific error messages identifying whether the From date, To date, or both were modified.
+
+```javascript
+entityMap = crmAPIRequest.toMap().get("record");
+new_start_datetime = entityMap.get("Start_DateTime");
+new_end_datetime = entityMap.get("End_DateTime");
+record_id = entityMap.get("id");
+
+if(record_id != null)
+{
+    // Edit scenario - prevent date change, allow time change
+    existing_record = zoho.crm.getRecordById("Events", record_id);
+    old_start_datetime = existing_record.get("Start_DateTime");
+    old_end_datetime = existing_record.get("End_DateTime");
+
+    // Extract date portions only (YYYY-MM-DD) by splitting on "T"
+    old_start_date = old_start_datetime.toString().toList("T").get(0);
+    old_end_date = old_end_datetime.toString().toList("T").get(0);
+    new_start_date = new_start_datetime.toString().toList("T").get(0);
+    new_end_date = new_end_datetime.toString().toList("T").get(0);
+
+    if(new_start_date != old_start_date && new_end_date != old_end_date)
+    {
+        response = Map();
+        response.put("status", "error");
+        response.put("message", "You are not allowed to change the From date and the To date. Only time modifications are permitted.");
+        return response;
+    }
+    else if(new_start_date != old_start_date)
+    {
+        response = Map();
+        response.put("status", "error");
+        response.put("message", "You are not allowed to change the From date. Only time modifications are permitted.");
+        return response;
+    }
+    else if(new_end_date != old_end_date)
+    {
+        response = Map();
+        response.put("status", "error");
+        response.put("message", "You are not allowed to change the To date. Only time modifications are permitted.");
+        return response;
+    }
+    else
+    {
+        response = Map();
+        response.put("status", "success");
+    }
+}
+else
+{
+    // New record scenario - prevent past date
+    today = zoho.currentdate;
+    new_start_date = new_start_datetime.toString().toList("T").get(0).toDate();
+
+    if(new_start_date < today)
+    {
+        response = Map();
+        response.put("status", "error");
+        response.put("message", "You are not allowed to set a past date for the event.");
+        return response;
+    }
+    else
+    {
+        response = Map();
+        response.put("status", "success");
+    }
+}
+
+return response;
+```
+---
