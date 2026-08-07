@@ -3651,3 +3651,41 @@ else
 return response;
 ```
 ---
+
+# Restrict Past Date Entry (Beyond Yesterday) on New Event Creation using Validation Rule :
+Note - A Zoho CRM Deluge validation function for the Events module that runs only on new event creation (record_id is null). It allows the event's Start date to be set to yesterday or later, but blocks creation if the Start date is earlier than yesterday. Edit scenarios (record_id present) are not validated by this function and always return success.
+
+```javascript
+entityMap = crmAPIRequest.toMap().get("record");
+new_start_datetime = entityMap.get("Start_DateTime");
+new_end_datetime = entityMap.get("End_DateTime");
+record_id = entityMap.get("id");
+
+if(record_id == null)
+{
+	// New record scenario - allow yesterday, block anything earlier
+	today = zoho.currentdate;
+	yesterday = today.addDay(-1);
+	new_start_date = new_start_datetime.toString().toList("T").get(0).toDate();
+
+	if(new_start_date < yesterday)
+	{
+		response = Map();
+		response.put("status", "error");
+		response.put("message", "You are not allowed to set a date earlier than yesterday for the event.");
+		return response;
+	}
+	else
+	{
+		response = Map();
+		response.put("status", "success");
+	}
+}
+else
+{
+	response = Map();
+	response.put("status", "success");
+}
+return response;
+```
+---
