@@ -3689,3 +3689,44 @@ else
 return response;
 ```
 ---
+
+# Create Current Month Travel Expense Report in Zoho Expense :
+Note - Automatically creates a Travel Expense report in Zoho Expense for the current calendar month. The script calculates the first and last day of the current month, generates a report name in the “MMMM yyyy Report” format, creates the report through the Zoho Expense API, and logs the newly created expense report ID.
+
+```
+// Runs on day 1 of every month (configured in the Schedule setup, not here)
+
+organizationId = "60081835784";
+today = zoho.currentdate;
+
+// First day of the current month, regardless of what day "today" actually is
+monthStartDate = today.addDay(1 - today.getDay());
+
+// Last day of the current month
+monthEndDate = today.eomonth(0);
+reportName = monthStartDate.toString("MMMM yyyy") + " Report";
+
+parameters_data = Map();
+parameters_data.put("report_name",reportName);
+parameters_data.put("purpose","Travel Expense");
+parameters_data.put("description","");
+parameters_data.put("start_date",monthStartDate.toString("yyyy-MM-dd"));
+parameters_data.put("end_date",monthEndDate.toString("yyyy-MM-dd"));
+
+headers_data = Map();
+headers_data.put("X-in-zoho-expense-organizationid",organizationId);
+
+response = invokeurl
+[
+	url :"https://www.zohoapis.in/expense/v1/expensereports"
+	type :POST
+	headers:headers_data
+	parameters:parameters_data.toString()
+	connection:"zexpense"
+];
+info response;
+
+reportId = response.get("expense_report").get("report_id");
+info "Created Expense Report ID: " + reportId;
+```
+---
