@@ -3837,7 +3837,7 @@ else
 {
 	// STEP 4: Required values
 	collectionId = latestCollection.get("id");
-	collectionAmount = ifnull(rent,0).toDecimal();
+	oldRentAmount = ifnull(rent,0).toDecimal();
 	
 	rentEffectiveDate = closingDateRaw.toDate();
 	revisedDate = revisedRentalDate.toDate();
@@ -3859,13 +3859,13 @@ else
 	if(sameMonth)
 	{
 		closingDay = rentEffectiveDate.getDay();
-		perDayOld = collectionAmount / daysInMonth;
+		perDayOld = oldRentAmount / daysInMonth;
 		// closingDay .. (revisedDay - 1)
 		daysTillRevised = revisedDay - closingDay;
 	}
 	else
 	{
-		perDayOld = collectionAmount / daysInMonth;
+		perDayOld = oldRentAmount / daysInMonth;
 		// day 1 .. revisedDay (inclusive)
 		daysTillRevised = revisedDay;
 	}
