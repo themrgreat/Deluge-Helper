@@ -3837,7 +3837,7 @@ else
 {
 	// STEP 4: Required values
 	collectionId = latestCollection.get("id");
-	collectionAmount = ifnull(latestCollection.get(collectionAmountField),0).toDecimal();
+	collectionAmount = ifnull(rent,0).toDecimal();
 	
 	rentEffectiveDate = closingDateRaw.toDate();
 	revisedDate = revisedRentalDate.toDate();
