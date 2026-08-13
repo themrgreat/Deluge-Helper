@@ -3302,6 +3302,16 @@ Note - Calculates the Monthly Net Total for a given month by summing all Rental 
 ```javascript
 // Get current Collections record
 record = zoho.crm.getRecordById("Collections",id);
+
+// Get Site lookup ID
+site = record.get("Site");
+siteId = "";
+if(site != null)
+{
+	siteId = site.get("id");
+}
+
+// Make searchable name : ex - July 2026
 nameValue = ifnull(record.get("Name"),"");
 
 // Find month
@@ -3336,12 +3346,14 @@ if(monthFound == "" || yearFound == "")
 
 info "Searching for: " + searchText;
 
+// Calculations start from here
 totalRentalAmount = 0.0;
 totalMonthlyExpenses = 0.0;
-rentalRecordId = "";
+collectionRecordIds = List();
 
 // Fetch all records for the same Month & Year
-query = "select id, Collection_Type, Rental_Amount, Monthly_Expenses from Collections where Name like '%" + searchText + "%'";
+// query = "select id, Collection_Type, Rental_Amount, Monthly_Expenses from Collections where Name like '%" + searchText + "%'";
+query = "select id, Collection_Type, Rental_Amount, Monthly_Expenses " + "from Collections " + "where Name like '%" + searchText + "%' " + "and Site = '" + siteId + "'";
 queryMap = Map();
 queryMap.put("select_query",query);
 
@@ -3352,6 +3364,7 @@ response = invokeurl
 	parameters:queryMap.toString()
 	connection:"zohocoql"
 ];
+info response;
 
 if(response.containsKey("data"))
 {
@@ -3362,27 +3375,25 @@ if(response.containsKey("data"))
 		totalMonthlyExpenses = totalMonthlyExpenses + ifnull(rec.get("Monthly_Expenses"),0);
 		if(rec.get("Collection_Type") == "Rental")
 		{
-			rentalRecordId = rec.get("id");
+			collectionRecordId = rec.get("id");
+			collectionRecordIds.add(collectionRecordId);
 		}
 	}
 }
-
 monthlyNetTotal = totalRentalAmount - totalMonthlyExpenses;
+
 info "Total Rental Amount : " + totalRentalAmount;
 info "Total Monthly Expenses : " + totalMonthlyExpenses;
 info "Monthly Net Total : " + monthlyNetTotal;
+info "Collection Record Ids - Rental : " + collectionRecordIds;
 
-if(rentalRecordId != "")
+for each  rec in collectionRecordIds
 {
 	updateMap = Map();
 	updateMap.put("Monthly_Net_Total",monthlyNetTotal);
-	updateResponse = zoho.crm.updateRecord("Collections",rentalRecordId,updateMap);
-	info "Rental Record ID : " + rentalRecordId;
+	updateResponse = zoho.crm.updateRecord("Collections",rec,updateMap);
+	info "Collection Record ID : " + rec;
 	info updateResponse;
-}
-else
-{
-	info "No Rental record found for " + searchText;
 }
 ```
 ---
