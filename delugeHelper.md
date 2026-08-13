@@ -3743,7 +3743,13 @@ info "Created Expense Report ID: " + reportId;
 ---
 
 # Split billing period and clone deal on mid-term rent revision (Add Revised Rent Proration Workflow) :
-Note - Deluge script that handles a mid-agreement rent change: frees the linked genset, clones the Deal as a new Active record at the revised rent, prorates the current Collection into old-rate/new-rate portions by day count, and clones the Collection for the new-rate portion linked to the new Deal.
+Note :
+- Clone Deal with revised rent and set it to Active.
+- Release the assigned Genset.
+- Prorate the existing Collection based on the revised rental date.
+- Clone the Collection for the revised rent period.
+- Handle same-month and Agreement End Date scenarios.
+- Skip cloning when no remaining days exist.
 
 ```javascript
 dealsModule = "Deals";
