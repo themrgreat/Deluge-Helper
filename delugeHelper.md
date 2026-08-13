@@ -3741,3 +3741,184 @@ reportId = response.get("expense_report").get("report_id");
 info "Created Expense Report ID: " + reportId;
 ```
 ---
+
+# Split billing period and clone deal on mid-term rent revision (Add Revised Rent Proration Workflow) :
+Note - Deluge script that handles a mid-agreement rent change: frees the linked genset, clones the Deal as a new Active record at the revised rent, prorates the current Collection into old-rate/new-rate portions by day count, and clones the Collection for the new-rate portion linked to the new Deal.
+
+```javascript
+dealsModule = "Deals";
+collectionsModule = "Collections";
+gensetField = "Genset";
+// Rent Effective Date
+closingDateField = "Closing_Date";
+agreementEndDateField = "Agreement_End_Date";
+// New rent amount
+revisedRentField = "Revised_Rent";
+// Date the revised rent kicks in
+revisedRentDateField = "Revised_Rental_Date";
+collectionAmountField = "Rental_Amount";
+// ------------------------------------------------------------------
+
+// STEP 1: Fetch the Deal + its Collections
+rentalData = zoho.crm.getRecordById(dealsModule,id);
+rent = rentalData.get("Amount");
+revisedRent = rentalData.get(revisedRentField);
+revisedRentalDate = rentalData.get(revisedRentDateField);
+closingDateRaw = rentalData.get(closingDateField);
+agreementEndDateRaw = rentalData.get(agreementEndDateField);
+genset = rentalData.get(gensetField);
+site = rentalData.get("Account_Name");
+
+// getRelatedRecords - collections
+collectionsList = zoho.crm.getRelatedRecords("Collections","Deals",id);
+info collectionsList;
+
+// STEP 2: Prepare the Deal
+// 2a. Free the Genset on the Product side
+if(genset != null)
+{
+	gensetId = genset.get("id");
+	updateGenMap = Map();
+	updateGenMap.put("Rental_Pipeline",null);
+	updateGenMap.put("Account",null);
+	updateGenMap.put("Genset_Status","Open");
+	updateGen = zoho.crm.updateRecord("Products",gensetId,updateGenMap);
+	info updateGen;
+}
+
+// 2b. Clone the Deal
+cloneResponse = invokeurl
+[
+	url :"https://www.zohoapis.com/crm/v8/Deals/" + id + "/actions/clone"
+	type :POST
+	connection:"zohocrm"
+];
+info cloneResponse;
+
+newDealId = cloneResponse.get("data").get(0).get("details").get("id");
+
+// 2c. Update the clone -> new Active deal
+updateNewMap = Map();
+updateNewMap.put("Amount",revisedRent);
+updateNewMap.put(revisedRentField,0);
+updateNewMap.put(revisedRentDateField,null);
+updateNewMap.put("Stage","Active");
+updateNewRental = zoho.crm.updateRecord(dealsModule,newDealId,updateNewMap);
+info updateNewRental;
+
+// STEP 3: Get latest Collection record
+latestCollection = Map();
+latestCreated = null;
+
+if(collectionsList != null && collectionsList.size() > 0)
+{
+	for each  col in collectionsList
+	{
+		colCreated = col.get("Created_Time");
+		if(latestCreated == null || colCreated > latestCreated)
+		{
+			latestCreated = colCreated;
+			latestCollection = col;
+		}
+	}
+}
+
+if(latestCollection.size() == 0)
+{
+	info "No Collection records found for Deal " + id;
+}
+else
+{
+	// STEP 4: Required values
+	collectionId = latestCollection.get("id");
+	collectionAmount = ifnull(latestCollection.get(collectionAmountField),0).toDecimal();
+	
+	rentEffectiveDate = closingDateRaw.toDate();
+	revisedDate = revisedRentalDate.toDate();
+	agreementEndDate = agreementEndDateRaw.toDate();
+	
+	sameMonth = rentEffectiveDate.getMonth() == revisedDate.getMonth() && rentEffectiveDate.getYear() == revisedDate.getYear();
+	
+	daysInMonth = revisedDate.eomonth(0).getDay();
+	revisedDay = revisedDate.getDay();
+	
+	// STEP 5/6: OLD rate portion.
+	// Boundary rule depends on whether the effective (closing) date falls in the same
+	// month as the revised date:
+	//   - Same month  -> revised date is the FIRST day of the NEW rate.
+	//                    Old rate covers closingDay .. (revisedDay - 1).
+	//   - Prior month -> revised date is the LAST day of the OLD rate.
+	//                    Old rate covers day 1 .. revisedDay (inclusive).
+	
+	if(sameMonth)
+	{
+		closingDay = rentEffectiveDate.getDay();
+		perDayOld = collectionAmount / daysInMonth;
+		// closingDay .. (revisedDay - 1)
+		daysTillRevised = revisedDay - closingDay;
+	}
+	else
+	{
+		perDayOld = collectionAmount / daysInMonth;
+		// day 1 .. revisedDay (inclusive)
+		daysTillRevised = revisedDay;
+	}
+	
+	existingAmount = (perDayOld * daysTillRevised).round(2);
+	updateCollectionMap = Map();
+	updateCollectionMap.put(collectionAmountField,existingAmount);
+	updateExistingCollection = zoho.crm.updateRecord(collectionsModule,collectionId,updateCollectionMap);
+	info updateExistingCollection;
+	
+	// STEP 7: NEW (revised) rate portion, mirroring the same boundary rule:
+	//   - Same month  -> revisedDay .. periodEndDay (revised date included in NEW rate)
+	//   - Prior month -> (revisedDay + 1) .. periodEndDay (revised date already billed at OLD rate)
+	
+	periodEndDay = daysInMonth;
+	if(agreementEndDate.getMonth() == revisedDate.getMonth() && agreementEndDate.getYear() == revisedDate.getYear())
+	{
+		periodEndDay = agreementEndDate.getDay();
+	}
+	
+	if(sameMonth)
+	{
+		// revisedDay .. periodEndDay
+		remainingDays = periodEndDay - revisedDay + 1;
+	}
+	else
+	{
+		// (revisedDay + 1) .. periodEndDay
+		remainingDays = periodEndDay - revisedDay;
+	}
+	
+	perDayNew = revisedRent / daysInMonth;
+	cloneAmount = (perDayNew * remainingDays).round(2);
+	
+	info "Existing -> " + existingAmount;
+	info "Clone -> " + cloneAmount;
+	
+	if(remainingDays > 0)
+	{
+		cloneCollectionResponse = invokeurl
+		[
+			url :"https://www.zohoapis.com/crm/v8/Collections/" + collectionId + "/actions/clone"
+			type :POST
+			connection:"zohocrm"
+		];
+		info cloneCollectionResponse;
+		
+		newCollectionId = cloneCollectionResponse.get("data").get(0).get("details").get("id");
+		
+		updateClonedCollectionMap = Map();
+		updateClonedCollectionMap.put(collectionAmountField,cloneAmount);
+		updateClonedCollectionMap.put("Rental_Pipeline",newDealId);
+		updateClonedCollection = zoho.crm.updateRecord(collectionsModule,newCollectionId,updateClonedCollectionMap);
+		info updateClonedCollection;
+	}
+	else
+	{
+		info "No remaining days after Revised Rent Date - skipping clone collection.";
+	}
+}
+```
+---
