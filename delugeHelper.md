@@ -3928,3 +3928,66 @@ else
 }
 ```
 ---
+
+# Zoho CRM & Zoho Expense Active User Matching by Email :
+Note - This Deluge script retrieves active users from Zoho CRM and Zoho Expense, indexes Expense users by lowercase email, and matches active users across both systems using email address. For each match, it collects the CRM user details, Expense user details, Expense user_id, and CRM full_name into a matchedUsers list for further processing.
+
+```javascript
+organizationId = "60081835784";
+
+headers_data = Map();
+headers_data.put("X-in-zoho-expense-organizationid",organizationId);
+
+// Active CRM users — fetched via getRecords, filtered manually
+resp = zoho.crm.getRecords("users");
+crmUsersList = resp.get("users");
+info crmUsersList;
+
+crmActiveUsers = List();
+for each crmU in crmUsersList
+{
+	if(crmU.get("status") == "active")
+	{
+		crmActiveUsers.add(crmU);
+	}
+}
+info crmActiveUsers;
+
+// Active Expense users, keyed by lowercase email for matching
+expUsersResp = invokeurl
+[
+	url :"https://www.zohoapis.in/expense/v1/users"
+	type :GET
+	headers:headers_data
+	connection:"zexpense"
+];
+expUsersList = expUsersResp.get("users");
+expUsersByEmail = Map();
+for each expU in expUsersList
+{
+	if(expU.get("status") == "active")
+	{
+		expUsersByEmail.put(lower(expU.get("email")),expU);
+	}
+}
+info expUsersByEmail;
+
+// Match CRM active users to Expense active users by email
+matchedUsers = List();
+for each crmU in crmActiveUsers
+{
+	crmEmail = lower(crmU.get("email"));
+	if(expUsersByEmail.containKey(crmEmail))
+	{
+		matchedExpUser = expUsersByEmail.get(crmEmail);
+		matchedRecord = Map();
+		matchedRecord.put("crm_user",crmU);
+		matchedRecord.put("expense_user",matchedExpUser);
+		matchedRecord.put("user_id",matchedExpUser.get("user_id"));
+		matchedRecord.put("full_name",crmU.get("full_name"));
+		matchedUsers.add(matchedRecord);
+	}
+}
+info matchedUsers;
+```
+---
