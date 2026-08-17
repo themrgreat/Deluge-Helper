@@ -3835,93 +3835,87 @@ if(latestCollection.size() == 0)
 }
 else
 {
-	// STEP 4: Required values
-	collectionId = latestCollection.get("id");
-	oldRentAmount = ifnull(rent,0).toDecimal();
+// STEP 4: Required values
+collectionId = latestCollection.get("id");
+currentCollectionName = latestCollection.get("Name");   // <-- confirm this is the real API field name
+oldRentAmount = ifnull(rent,0).toDecimal();
+
+rentEffectiveDate = closingDateRaw.toDate();
+revisedDate = revisedRentalDate.toDate();
+agreementEndDate = agreementEndDateRaw.toDate();
+
+sameMonth = rentEffectiveDate.getMonth() == revisedDate.getMonth() && rentEffectiveDate.getYear() == revisedDate.getYear();
+
+daysInMonth = revisedDate.eomonth(0).getDay();
+revisedDay = revisedDate.getDay();
+
+// Static tail of the name, e.g. "- Rental - DCB BANK LTD./ANKLESHWAR"
+nameSuffix = currentCollectionName.getSuffix(") ");
+
+// STEP 5/6: OLD rate portion
+if(sameMonth)
+{
+	closingDay = rentEffectiveDate.getDay();
+	perDayOld = oldRentAmount / daysInMonth;
+	daysTillRevised = revisedDay - closingDay;
+	oldSegmentStartDate = rentEffectiveDate;
+}
+else
+{
+	perDayOld = oldRentAmount / daysInMonth;
+	daysTillRevised = revisedDay - 1;                          // fixed boundary
+	oldSegmentStartDate = revisedDate.subDay(revisedDay - 1);   // 1st of the revised month
+}
+oldSegmentEndDate = revisedDate.subDay(1);   // day before the revised date, e.g. 15
+
+existingAmount = (perDayOld * daysTillRevised).round(2);
+existingCollectionName = "(" + oldSegmentStartDate.toString("d MMMM yyyy") + " - " + oldSegmentEndDate.toString("d MMMM yyyy") + ") " + nameSuffix;
+
+updateCollectionMap = Map();
+updateCollectionMap.put(collectionAmountField,existingAmount);
+updateCollectionMap.put("Name",existingCollectionName);
+updateExistingCollection = zoho.crm.updateRecord(collectionsModule,collectionId,updateCollectionMap);
+info updateExistingCollection;
+
+// STEP 7: NEW (revised) rate portion
+periodEndDate = revisedDate.eomonth(0);   // last day of the revised month
+if(agreementEndDate.getMonth() == revisedDate.getMonth() && agreementEndDate.getYear() == revisedDate.getYear())
+{
+	periodEndDate = agreementEndDate;     // agreement ends mid-month
+}
+periodEndDay = periodEndDate.getDay();
+remainingDays = periodEndDay - revisedDay + 1;   // same formula both branches now
+
+newSegmentStartDate = revisedDate;        // e.g. 16
+newSegmentEndDate = periodEndDate;        // e.g. 31 (or agreement end)
+cloneCollectionName = "(" + newSegmentStartDate.toString("d MMMM yyyy") + " - " + newSegmentEndDate.toString("d MMMM yyyy") + ") " + nameSuffix;
+
+perDayNew = revisedRent / daysInMonth;
+cloneAmount = (perDayNew * remainingDays).round(2);
+info "Existing -> " + existingAmount;
+info "Clone -> " + cloneAmount;
+
+if(remainingDays > 0)
+{
+	cloneCollectionResponse = invokeurl
+	[
+		url :"https://www.zohoapis.com/crm/v8/Collections/" + collectionId + "/actions/clone"
+		type :POST
+		connection:"zohocrm"
+	];
+	info cloneCollectionResponse;
+
+	newCollectionId = cloneCollectionResponse.get("data").get(0).get("details").get("id");
+
+	updateClonedCollectionMap = Map();
+	updateClonedCollectionMap.put(collectionAmountField,cloneAmount);
+	updateClonedCollectionMap.put("Rental_Pipeline",newDealId);
+	updateClonedCollectionMap.put("Name",cloneCollectionName);
 	
-	rentEffectiveDate = closingDateRaw.toDate();
-	revisedDate = revisedRentalDate.toDate();
-	agreementEndDate = agreementEndDateRaw.toDate();
-	
-	sameMonth = rentEffectiveDate.getMonth() == revisedDate.getMonth() && rentEffectiveDate.getYear() == revisedDate.getYear();
-	
-	daysInMonth = revisedDate.eomonth(0).getDay();
-	revisedDay = revisedDate.getDay();
-	
-	// STEP 5/6: OLD rate portion.
-	// Boundary rule depends on whether the effective (closing) date falls in the same
-	// month as the revised date:
-	//   - Same month  -> revised date is the FIRST day of the NEW rate.
-	//                    Old rate covers closingDay .. (revisedDay - 1).
-	//   - Prior month -> revised date is the LAST day of the OLD rate.
-	//                    Old rate covers day 1 .. revisedDay (inclusive).
-	
-	if(sameMonth)
-	{
-		closingDay = rentEffectiveDate.getDay();
-		perDayOld = oldRentAmount / daysInMonth;
-		// closingDay .. (revisedDay - 1)
-		daysTillRevised = revisedDay - closingDay;
-	}
-	else
-	{
-		perDayOld = oldRentAmount / daysInMonth;
-		// day 1 .. revisedDay (inclusive)
-		daysTillRevised = revisedDay;
-	}
-	
-	existingAmount = (perDayOld * daysTillRevised).round(2);
-	updateCollectionMap = Map();
-	updateCollectionMap.put(collectionAmountField,existingAmount);
-	updateExistingCollection = zoho.crm.updateRecord(collectionsModule,collectionId,updateCollectionMap);
-	info updateExistingCollection;
-	
-	// STEP 7: NEW (revised) rate portion, mirroring the same boundary rule:
-	//   - Same month  -> revisedDay .. periodEndDay (revised date included in NEW rate)
-	//   - Prior month -> (revisedDay + 1) .. periodEndDay (revised date already billed at OLD rate)
-	
-	periodEndDay = daysInMonth;
-	if(agreementEndDate.getMonth() == revisedDate.getMonth() && agreementEndDate.getYear() == revisedDate.getYear())
-	{
-		periodEndDay = agreementEndDate.getDay();
-	}
-	
-	if(sameMonth)
-	{
-		// revisedDay .. periodEndDay
-		remainingDays = periodEndDay - revisedDay + 1;
-	}
-	else
-	{
-		// (revisedDay + 1) .. periodEndDay
-		remainingDays = periodEndDay - revisedDay;
-	}
-	
-	perDayNew = revisedRent / daysInMonth;
-	cloneAmount = (perDayNew * remainingDays).round(2);
-	
-	info "Existing -> " + existingAmount;
-	info "Clone -> " + cloneAmount;
-	
-	if(remainingDays > 0)
-	{
-		cloneCollectionResponse = invokeurl
-		[
-			url :"https://www.zohoapis.com/crm/v8/Collections/" + collectionId + "/actions/clone"
-			type :POST
-			connection:"zohocrm"
-		];
-		info cloneCollectionResponse;
-		
-		newCollectionId = cloneCollectionResponse.get("data").get(0).get("details").get("id");
-		
-		updateClonedCollectionMap = Map();
-		updateClonedCollectionMap.put(collectionAmountField,cloneAmount);
-		updateClonedCollectionMap.put("Rental_Pipeline",newDealId);
-		updateClonedCollection = zoho.crm.updateRecord(collectionsModule,newCollectionId,updateClonedCollectionMap);
-		info updateClonedCollection;
-	}
-	else
+	updateClonedCollection = zoho.crm.updateRecord(collectionsModule,newCollectionId,updateClonedCollectionMap);
+	info updateClonedCollection;
+}
+else
 	{
 		info "No remaining days after Revised Rent Date - skipping clone collection.";
 	}
